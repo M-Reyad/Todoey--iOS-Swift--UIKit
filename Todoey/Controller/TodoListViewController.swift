@@ -7,21 +7,27 @@
 //
 
 import UIKit
+import CoreData
+
 
 class TodoListViewController: UITableViewController {
     
     var toDoListArray = [ItemData]()
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
 
-    let dataFileLocation = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(K.ItemsPlist)
-    
+/*
+-- Used only in Plist model, replaced by CoreData DataBase!! --
+     let dataFileLocation = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(K.ItemsPlist)
+*/
     override func viewDidLoad() {
         super.viewDidLoad()
-        decoder()
+        loadContext()
     }
     
     //MARK:- New Item Button
     @IBAction func newItemButtonPressed(_ sender: UIBarButtonItem) {
-        let newItem = ItemData()
+        
+        let newItem = ItemData(context: context)
         var newItemTextField = UITextField()
 
         let alert = UIAlertController(title: "Add New Item", message: "Add New Item", preferredStyle: .alert)
@@ -47,9 +53,9 @@ class TodoListViewController: UITableViewController {
                 self.present(errorAlert, animated: true)
             } else {
                 newItem.title = newItemTextField.text!
-
+                newItem.done = false
                 self.toDoListArray.append(newItem)
-                self.encoder()
+                self.saveContext()
 
                 
              
@@ -83,32 +89,25 @@ class TodoListViewController: UITableViewController {
 
 }
 
-//MARK:- Encoder and Decoder Function
+//MARK:- Save and Read Context Functions
 extension TodoListViewController {
-    func encoder(){
-            let encoder = PropertyListEncoder()
+    func saveContext(){
             do {
-                let data = try encoder.encode(self.toDoListArray)
-                try data.write(to: self.dataFileLocation!)
+                try context.save()
         }catch{
                 print("error! \(error)" )
-        
     }
         self.tableView.reloadData()
     }
     
-    func decoder (){
-        let decoder = PropertyListDecoder()
-        var data = Data()
-        do{
-        if let safeData = try? Data(contentsOf: self.dataFileLocation!) {
-            data = safeData
-            }
-            self.toDoListArray = try decoder.decode([ItemData].self, from: data)
-        } catch{
-            print("Cannot decode Data from the Property List \(error)")
+    func loadContext (){
+//        let decoder = PropertyListDecoder()
+        let request : NSFetchRequest<ItemData> = ItemData.fetchRequest()
+        do{ try toDoListArray = context.fetch(request)
+            }catch{
+            print("Cannot decode Data from the DataBase \(error)")
         }
-        
+
     }
 
 }
